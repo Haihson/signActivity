@@ -6,7 +6,6 @@
 
   <!--日历控件-->
   <div class="div_grid" id="grid">
-    <!-- <calendar-week v-bind:my-weeks="weeks"></calendar-week> -->
     <!--日历星期-->
     <div class="div_row">
         <div class="div_cell" v-for="(item, index) in weeks" v-bind:class="weekStyle(index)">{{ item.name }}</div>
@@ -14,7 +13,7 @@
     <!--日历数据-->
     <div class="div_row" v-for="(item, row) in days.length/weekNum">
       <div class="div_cell" v-for="(day, cell) in getRangeWeek(row, days)" v-bind:class="divCellStyle(day)">
-          <div class="cell_day" v-bind:class="{cell_0: cell === 0, cell_6: cell === 6}">
+          <div class="cell_day" v-bind:class="{cell_0: cell === 0, cell_6: cell === 6}" v-on:click="clickSign(day)">
               <label>{{ (day.day === 1 ? day.month + '月' : day.day) }}</label>
           </div>
       </div>
@@ -94,6 +93,30 @@
 export default {
   name: 'div_container',
   props: {
+    CODE_CHANGE_DEVICE: {
+      type: Number,
+      default: 0
+    },
+    CODE_CHANGE_CITY: {
+      type: Number,
+      default: 1
+    },
+    CODE_SIGN_NOT_COUPON: {
+      type: Number,
+      default: 2
+    },
+    CODE_RECEIVED: {
+      type: Number,
+      default: 3
+    },
+    CODE_SIGNED: {
+      type: Number,
+      default: 4
+    },
+    CODE_NORMAL: {
+      type: Number,
+      default: 5
+    },
     weekNum: {
       type: Number,
       default: 7
@@ -123,10 +146,10 @@ export default {
       cycleSign: 0,
       currtYear: 2017,
       currtMonth: 4,
-      currtDay: 6,
+      currtDay: 7,
       currtSwitchYear: 2017,
       currtSwitchMonth: 4,
-      currtSwitchDay: 6,
+      currtSwitchDay: 7,
       totalWeekNum: 42,
       currtSwitchParam: 'currt',
       isShowToast: false,
@@ -168,7 +191,7 @@ export default {
       signData: {
         code: 0,
         data: {
-          date: '2017-04-06',
+          date: '2017-04-07',
           endDate: '2017.05.01',
           signCount: 0,
           cunponCount: 3,
@@ -208,6 +231,8 @@ export default {
               date: '2017-03-30 18:44:10'
             }, {
               date: '2017-03-31 14:29:31'
+            }, {
+              date: '2017-04-06 18:29:31'
             }]
           },
           cycleNumber: 6,
@@ -255,7 +280,7 @@ export default {
     initShareInfo: function () {
       // 初始化分享配置信息
       if (this.shareData.code !== 0) {
-        this.shareData = "{'code':'0','data':{'icon':'','title':'分享一个VueJS神器给你','url':'https://sitweixin.bojuecar.com/weixin/app/v2/23/signShare','content':'快来跟我一起签到吧，我已经领了好多优惠券了'},'message':'成功！'}"
+        this.shareData = "{'code':'0','data':{'icon':'','title':'分享一个VueJS神器给你','url':'https://github.com/Haihson/signActivity','content':'快来跟我一起签到吧，我已经领了好多优惠券了'},'message':'成功！'}"
       }
     },
     clickSwitchMonth: function (param) {
@@ -386,34 +411,34 @@ export default {
       for (i = 0; i < changeDeviceList.length; i++) {
         tempDate = this.formatDate(changeDeviceList[i].date)
         if (tempDate === currtDate) {
-          return 0
+          return this.CODE_CHANGE_DEVICE
         }
       }
       for (i = 0; i < changeCityList.length; i++) {
         tempDate = this.formatDate(changeCityList[i].date)
         if (tempDate === currtDate) {
-          return 1
+          return this.CODE_CHANGE_CITY
         }
       }
       for (i = 0; i < signNotCouponList.length; i++) {
         tempDate = this.formatDate(signNotCouponList[i].date)
         if (tempDate === currtDate) {
-          return 2
+          return this.CODE_SIGN_NOT_COUPON
         }
       }
       for (i = 0; i < receivedList.length; i++) {
         tempDate = this.formatDate(receivedList[i].date)
         if (tempDate === currtDate) {
-          return 3
+          return this.CODE_RECEIVED
         }
       }
       for (i = 0; i < signedList.length; i++) {
         tempDate = this.formatDate(signedList[i].date)
         if (tempDate === currtDate) {
-          return 4
+          return this.CODE_SIGNED
         }
       }
-      return 5
+      return this.CODE_NORMAL
     },
     isSameMobileCode: function () {
       // 是否为相同设备
@@ -437,21 +462,27 @@ export default {
       // 领券弹窗
       this.isShowLingQuanDialog = false
     },
-    clickSign: function () {
+    clickSign: function (day) {
       // 签到操作
-      // 是否和上次签到是同一设备
-      if (!this.isSameMobileCode()) {
-        this.tipStrModel2 = this.tipChangDeviesSignStr
-        this.isShowDivSignDialog = true
-        return
+      // 是否符合点击签到、签到领券条件
+      let flagNum = this.signDateStatus(day.year, day.month, day.day)
+      if (flagNum === this.CODE_NORMAL) {
+        if ((this.currtDay === day.day && day.day === this.lingQuanDay) || (this.currtDay === day.day && this.currtMonth === day.month && this.currtYear === day.year)) {
+          // 是否和上次签到是同一设备
+          if (!this.isSameMobileCode()) {
+            this.tipStrModel2 = this.tipChangDeviesSignStr
+            this.isShowDivSignDialog = true
+            return
+          }
+          // 是否和上次签到是同一城市
+          if (!this.isSameCity()) {
+            this.tipStrModel2 = this.tipChangCitySignStr
+            this.isShowDivSignDialog = true
+            return
+          }
+          this.signSure()
+        }
       }
-      // 是否和上次签到是同一城市
-      if (!this.isSameCity()) {
-        this.tipStrModel2 = this.tipChangCitySignStr
-        this.isShowDivSignDialog = true
-        return
-      }
-      this.signSure()
     },
     clickSignCancle: function () {
       // 取消签到操作
@@ -484,14 +515,14 @@ export default {
       let flagNum = this.signDateStatus(day.year, day.month, day.day)
       return {
         cell_not_currt_month_day: (day.isPreMonth || day.isNextMonth),
-        cell_change_device_day: flagNum === 0,
-        cell_change_city_day: flagNum === 1,
-        cell_none_coupons_day: flagNum === 2,
-        cell_coupons_day: flagNum === 3,
-        img_opacity: flagNum === 3,
-        cell_have_signed_day: flagNum === 4,
-        cell_sign_coupons_day: flagNum === 5 && this.currtDay === day.day && day.day === this.lingQuanDay,
-        cell_currt_day: flagNum === 5 && this.currtDay === day.day && this.currtMonth === day.month && this.currtYear === day.year
+        cell_change_device_day: flagNum === this.CODE_CHANGE_DEVICE,
+        cell_change_city_day: flagNum === this.CODE_CHANGE_CITY,
+        cell_none_coupons_day: flagNum === this.CODE_SIGN_NOT_COUPON,
+        cell_coupons_day: flagNum === this.CODE_RECEIVED,
+        img_opacity: flagNum === this.CODE_RECEIVED,
+        cell_have_signed_day: flagNum === this.CODE_SIGNED,
+        cell_sign_coupons_day: flagNum === this.CODE_NORMAL && this.currtDay === day.day && day.day === this.lingQuanDay,
+        cell_currt_day: flagNum === this.CODE_NORMAL && this.currtDay === day.day && this.currtMonth === day.month && this.currtYear === day.year
       }
     },
     getRangeWeek: function (index, days) {

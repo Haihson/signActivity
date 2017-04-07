@@ -96,7 +96,7 @@ new Vue({
   <!--日历数据-->
   <div class="div_row" v-for="(item, row) in days.length/weekNum">
     <div class="div_cell" v-for="(day, cell) in getRangeWeek(row, days)" v-bind:class="divCellStyle(day)">
-        <div class="cell_day" v-bind:class="{cell_0: cell === 0, cell_6: cell === 6}">
+        <div class="cell_day" v-bind:class="{cell_0: cell === 0, cell_6: cell === 6}" v-on:click="clickSign(day)">
             <label>{{ (day.day === 1 ? day.month + '月' : day.day) }}</label>
         </div>
     </div>
